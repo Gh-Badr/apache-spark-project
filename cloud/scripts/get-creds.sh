@@ -23,12 +23,4 @@ cd ../..
 # Get credentials for the GKE cluster
 gcloud container clusters get-credentials ${CLUSTER_NAME} --zone ${CLUSTER_ZONE} --project ${PROJECT_ID}
 
-# Add necessary Helm repository
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-
-# Install Spark
-helm upgrade --install spark bitnami/spark \
-    --wait
-
-echo "Spark has been successfully installed on the GKE cluster."
+echo "Cluster credentials set for ${CLUSTER_NAME} in ${CLUSTER_ZONE}. You can now interact with the cluster."
