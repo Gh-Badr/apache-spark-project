@@ -16,7 +16,7 @@ resource "google_container_cluster" "my_cluster" {
   name     = var.name
   location = var.zone
 
-  initial_node_count = 2
+  initial_node_count = 4
   node_config {
     machine_type = "e2-standard-2"
   }

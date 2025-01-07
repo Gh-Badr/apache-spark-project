@@ -1,0 +1,40 @@
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs:
+      - job_name: 'spark-master'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - default
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name, __meta_kubernetes_pod_label_app_kubernetes_io_component]
+            regex: 'spark;master'
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_statefulset_kubernetes_io_pod_name]
+            target_label: pod_name
+          - target_label: spark_role
+            replacement: master
+        metrics_path: /metrics/
+        scheme: http
+
+      - job_name: 'spark-workers'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - default
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name, __meta_kubernetes_pod_label_app_kubernetes_io_component]
+            regex: 'spark;worker'
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_statefulset_kubernetes_io_pod_name]
+            target_label: pod_name
+          - target_label: spark_role
+            replacement: worker
+        metrics_path: /metrics/
+        scheme: http
+  
+grafana:
+  service:
+    type: LoadBalancer

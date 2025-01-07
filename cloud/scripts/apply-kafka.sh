@@ -29,6 +29,9 @@ kubectl apply -f cloud/k8s/kafka/kafdrop.yaml -n kafka
 # Wait for Kafdrop
 kubectl wait --for=condition=available --timeout=300s deployment/kafdrop -n kafka
 
+# Sleep for 10 seconds
+sleep 10
+
 # Get the external IP of the svc (LoadBalancer)
 kaftrop_ip=$(kubectl get svc kafdrop -n kafka -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 

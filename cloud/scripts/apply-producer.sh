@@ -66,13 +66,13 @@ kubectl create secret generic $GCS_SECRET_NAME --from-file=key.json=${KEY_FILE} 
 kubectl create configmap $CONFIG_MAP_NAME --from-file=producer.py=$PRODUCER_FILE_PATH --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
 echo "Applying deployment..."
+export START_FILE="0"
+export NUM_FILES="5"
+export SPEED_FACTOR=604800 # 1 week = 1 sec
+# export SPEED_FACTOR="86400" # 1 day = 1 sec
+# export SPEED_FACTOR=3600 # 1 hour = 1 sec
 # Render the deployment template with the project ID
-envsubst '$PROJECT_ID' < ${DEPLOYMENT_TEMPLATE_PATH} > ${DEPLOYMENT_FILE_PATH}
-export START_FILE=0
-export NUM_FILES=5
-# export SPEED_FACTOR=86400 # 1 day = 1 sec
-export SPEED_FACTOR=3600 # 1 hour = 1 sec
-envsubst '$START_FILE' < ${DEPLOYMENT_FILE_PATH} > ${DEPLOYMENT_FILE_PATH}
+envsubst '$PROJECT_ID,$START_FILE,$NUM_FILES,$SPEED_FACTOR' < ${DEPLOYMENT_TEMPLATE_PATH} > ${DEPLOYMENT_FILE_PATH}
 
 # Apply the rendered deployment
 kubectl apply -f ${DEPLOYMENT_FILE_PATH} --namespace=$NAMESPACE
