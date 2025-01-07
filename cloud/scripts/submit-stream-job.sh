@@ -19,8 +19,8 @@ kubectl exec -it spark-master-0 -- \
     --conf "spark.jars.ivy=/tmp/.ivy2" \
     --conf spark.executor.instances=2 \
     --conf spark.executor.cores=1 \
-    --conf spark.executor.memory=512m \
-    --conf spark.driver.memory=512m \
+    --conf spark.executor.memory=1g \
+    --conf spark.driver.memory=1g \
     --conf spark.sql.streaming.schemaInference=true \
     --conf spark.sql.shuffle.partitions=4 \
     --conf spark.default.parallelism=4 \
