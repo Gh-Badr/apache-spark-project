@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-producer
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: event-producer
+  template:
+    metadata:
+      labels:
+        app: event-producer
+    spec:
+      containers:
+      - name: producer
+        image: python:3.9-slim
+        command: 
+        - "/bin/bash"
+        - "-c"
+        - |
+          pip install google-cloud-storage kafka-python
+          echo "Packages installed successfully"
+          python /app/producer.py \
+            --start-file ${START_FILE} \
+            --num-files ${NUM_FILES} \
+            --speed-factor ${SPEED_FACTOR}
+        volumeMounts:
+        - name: producer-code
+          mountPath: /app
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "${PROJECT_ID}"  # This will be replaced by envsubst
+        - name: START_FILE
+          value: ${START_FILE}
+        - name: NUM_FILES
+          value: ${NUM_FILES}
+        - name: SPEED_FACTOR
+          value: ${SPEED_FACTOR}
+      volumes:
+      - name: producer-code
+        configMap:
+          name: producer-config
+      - name: google-cloud-key
+        secret:
+          secretName: spark-gcs-secret
