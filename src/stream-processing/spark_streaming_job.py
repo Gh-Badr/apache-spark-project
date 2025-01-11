@@ -5,18 +5,31 @@ import time
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-metrics_data = []
+# Add locks for thread safety
+metrics_lock = threading.Lock()
+jobs_performance_metrics = []
+tasks_performance_metrics = []
+jobs_by_scheduling_class_metrics = []
+tasks_by_scheduling_class_metrics = []
+jobs_by_event_type_metrics = []
+tasks_by_event_type_metrics = []
 
 class MetricsHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/metrics/":
-            print(f'GET request received for {self.path}')
-            print(f'Responding with {len(metrics_data)} metrics')
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain; charset=utf-8")
-            self.end_headers()
-            metrics = "\n".join(metrics_data)
-            self.wfile.write(metrics.encode("utf-8"))
+            with metrics_lock:
+                metrics_data = (jobs_performance_metrics + tasks_performance_metrics + 
+                              jobs_by_event_type_metrics + jobs_by_scheduling_class_metrics +
+                              tasks_by_event_type_metrics + tasks_by_scheduling_class_metrics)
+                print(f'GET request received for {self.path}')
+                print(f'Responding with {len(metrics_data)} metrics')
+                print("Metrics to be served:", flush=True)
+                print(metrics_data, flush=True)
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain; charset=utf-8")
+                self.end_headers()
+                metrics = "\n".join(metrics_data)
+                self.wfile.write(metrics.encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
@@ -67,37 +80,51 @@ def define_schemas():
 # This function is called for each batch of the stream
 # It collects the results of the batch and creates the metrics
 def foreach_batch_function(df, epoch_id, metric_name):
-    global metrics_data
+    global jobs_by_event_type_metrics, jobs_by_scheduling_class_metrics
+    global tasks_by_event_type_metrics, tasks_by_scheduling_class_metrics
     results = df.collect()
     temp_metrics = []
 
-    # Get the current time (now) in seconds
     current_time = float(time.time())
-
+    metrics_dict = {}
+    
     for row in results:
-        # Calculate the relative timestamp (current_time - event_timestamp)
-        event_timestamp = row['event_timestamp'].timestamp() / 1000.0  # Convert to seconds
-        relative_timestamp = int(current_time - event_timestamp)  # This is the difference in seconds
+        event_timestamp = row['event_timestamp'].timestamp() / 1000.0
+        relative_timestamp = int(current_time - event_timestamp) * 1000
+
+        print(f"The relative timestamp is the date: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(relative_timestamp / 1000))}")
 
         if 'event_type' in row:
             metric_value = row['count']
             event_type = row['event_type']
-            temp_metrics.append(f'# TYPE spark_streaming_{metric_name}_count gauge')
-            # Use relative timestamp for the metric
-            temp_metrics.append(f'spark_streaming_{metric_name}_count{{event_type="{event_type}"}} {metric_value} {relative_timestamp}')
+            metric_key = f'event_type="{event_type}"'
+            metrics_dict[metric_key] = (metric_value, relative_timestamp)
         
         if 'scheduling_class' in row:
             metric_value = row['count']
             scheduling_class = str(row['scheduling_class'])
-            temp_metrics.append(f'# TYPE spark_streaming_{metric_name}_count gauge')
-            # Use relative timestamp for the metric
-            temp_metrics.append(f'spark_streaming_{metric_name}_count{{scheduling_class="{scheduling_class}"}} {metric_value} {relative_timestamp}')
+            metric_key = f'scheduling_class="{scheduling_class}"'
+            metrics_dict[metric_key] = (metric_value, relative_timestamp)
 
-    metrics_data.extend(temp_metrics)
+    if metrics_dict:
+        temp_metrics.append(f'# TYPE spark_streaming_{metric_name}_count gauge')
+        for key, (value, timestamp) in metrics_dict.items():
+            temp_metrics.append(f'spark_streaming_{metric_name}_count{{{key}}} {value}')
 
+        with metrics_lock:
+            if "job" in metric_name:
+                if 'event_type' in list(df.columns):
+                    jobs_by_event_type_metrics = temp_metrics
+                elif 'scheduling_class' in list(df.columns):
+                    jobs_by_scheduling_class_metrics = temp_metrics
+            elif "task" in metric_name:
+                if 'event_type' in list(df.columns):
+                    tasks_by_event_type_metrics = temp_metrics
+                elif 'scheduling_class' in list(df.columns):
+                    tasks_by_scheduling_class_metrics = temp_metrics
 
 def monitor_query_progress(query, query_name):
-    global metrics_data
+    global jobs_performance_metrics, tasks_performance_metrics
     while query.isActive:
         progress = query.lastProgress
         if progress:
@@ -111,7 +138,11 @@ def monitor_query_progress(query, query_name):
                 f'# TYPE spark_streaming_{query_name}_num_input_rows gauge',
                 f'spark_streaming_{query_name}_num_input_rows {progress["numInputRows"]}'
             ]
-            metrics_data.extend(metrics)
+            with metrics_lock:
+                if 'job' in query_name:
+                    jobs_performance_metrics = metrics
+                else:
+                    tasks_performance_metrics = metrics
         time.sleep(5)
 
 def process_streams():
@@ -201,25 +232,25 @@ def process_streams():
     queries = [
         job_counts_by_event.writeStream \
             .outputMode("complete") \
-            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "job_event_type")) \
+            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "job")) \
             .trigger(processingTime="10 seconds") \
             .start(),
 
         task_count_by_event.writeStream \
             .outputMode("complete") \
-            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "task_event_type")) \
+            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "task")) \
             .trigger(processingTime="10 seconds") \
             .start(),
 
         job_counts_by_scheduling_class.writeStream \
             .outputMode("complete") \
-            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "job_scheduling_class")) \
+            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "job")) \
             .trigger(processingTime="10 seconds") \
             .start(),
 
         task_counts_by_scheduling_class.writeStream \
             .outputMode("complete") \
-            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "task_scheduling_class")) \
+            .foreachBatch(lambda df, epochId: foreach_batch_function(df, epochId, "task")) \
             .trigger(processingTime="10 seconds") \
             .start()
     ]
@@ -234,7 +265,9 @@ def process_streams():
 
     print("Streaming queries started with the following analyses:")
     print("1. Job events count by type")
-    print("2. Task distribution by scheduling class")
+    print("2. Task distribution by type")
+    print("3. Task distribution by scheduling class")
+    print("4. Job distribution by scheduling class")
     print("\nAwaiting termination...")
     spark.streams.awaitAnyTermination()
 

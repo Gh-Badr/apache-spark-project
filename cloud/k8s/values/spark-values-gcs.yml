@@ -1,0 +1,26 @@
+master:
+  extraJavaOptions: "--add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED"
+  extraVolumes:
+    - name: gcs-key
+      secret:
+        secretName: spark-gcs-secret
+  extraVolumeMounts:
+    - name: gcs-key
+      mountPath: /etc/gcs
+      readOnly: true
+
+worker:
+  extraJavaOptions: "--add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED"
+  extraVolumes:
+    - name: gcs-key
+      secret:
+        secretName: spark-gcs-secret
+  extraVolumeMounts:
+    - name: gcs-key
+      mountPath: /etc/gcs
+      readOnly: true
+
+spark:
+  extraEnvVars:
+    - name: GOOGLE_APPLICATION_CREDENTIALS
+      value: /etc/gcs/key.json
