@@ -33,6 +33,9 @@ helm upgrade spark bitnami/spark \
     -f ${VALUES_FILE} \
     --wait
 
+# Create jars directory
+mkdir -p cloud/k8s/jars
+
 # Download the GCS connector JAR
 wget https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
     -O cloud/k8s/jars/gcs-connector.jar
@@ -43,5 +46,6 @@ kubectl cp cloud/k8s/jars/gcs-connector.jar spark-worker-0:/tmp/gcs-connector.ja
 # Clean up
 rm -f ${KEY_FILE}
 rm cloud/k8s/jars/gcs-connector.jar
+rm -rf cloud/k8s/jars
 
 echo "Spark has been successfuly configured to use GCS."
