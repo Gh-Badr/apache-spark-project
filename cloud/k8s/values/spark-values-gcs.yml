@@ -1,4 +1,6 @@
 master:
+  containerSecurityContext:
+    enabled: false # Changed from true to false to allow installation of packages using pip (Note: This is not recommended for production) 
   configOptions: "-Dspark.scheduler.mode=FAIR" 
   resources:
     requests:
@@ -22,6 +24,8 @@ master:
       readOnly: true
 
 worker:
+  containerSecurityContext:
+    enabled: false # Changed from true to false to allow installation of packages using pip (Note: This is not recommended for production) 
   autoscaling:
     enabled: true
     minReplicas: 2
@@ -69,3 +73,4 @@ metrics:
     enabled: true
     namespace: monitoring 
     interval: 10s
+

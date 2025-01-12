@@ -29,7 +29,7 @@ kubectl create secret generic spark-gcs-secret \
     --dry-run=client -o yaml | kubectl apply -f -
 
 # Install Spark
-helm upgrade spark bitnami/spark \
+helm upgrade --install spark bitnami/spark \
     -f ${VALUES_FILE} \
     --wait
 
