@@ -1,4 +1,18 @@
 master:
+  containerSecurityContext:
+    enabled: false # Changed from true to false to allow installation of packages using pip (Note: This is not recommended for production) 
+  configOptions: "-Dspark.scheduler.mode=FAIR" 
+  resources:
+    requests:
+      cpu: 500m
+      memory: "1Gi"
+    limits:
+      cpu: 1
+      memory: "2Gi"
+  extraContainerPorts:
+    - name: stream-process
+      containerPort: 8181
+      protocol: TCP
   extraJavaOptions: "--add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED"
   extraVolumes:
     - name: gcs-key
@@ -10,6 +24,26 @@ master:
       readOnly: true
 
 worker:
+  containerSecurityContext:
+    enabled: false # Changed from true to false to allow installation of packages using pip (Note: This is not recommended for production) 
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPU: 60
+    targetMemory: 80
+  configOptions: "-Dspark.scheduler.mode=FAIR" 
+  resources:
+    requests:
+      cpu: 500m
+      memory: "1Gi"
+    limits:
+      cpu: 1
+      memory: "2Gi"
+  extraContainerPorts: 
+    - name: stream-process
+      containerPort: 8181
+      protocol: TCP
   extraJavaOptions: "--add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED"
   extraVolumes:
     - name: gcs-key
@@ -24,3 +58,19 @@ spark:
   extraEnvVars:
     - name: GOOGLE_APPLICATION_CREDENTIALS
       value: /etc/gcs/key.json
+
+metrics:
+  enabled: true
+  masterAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics/"
+    prometheus.io/port: "8080"
+  workerAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics/"
+    prometheus.io/port: "8080"
+  podMonitor:
+    enabled: true
+    namespace: monitoring 
+    interval: 10s
+

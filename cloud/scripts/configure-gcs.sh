@@ -37,6 +37,7 @@ else
         gcloud projects add-iam-policy-binding $PROJECT_ID \
                 --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
                 --role="roles/storage.objectViewer" \
+                --role="roles/storage.objectCreator" \
                 --project=${PROJECT_ID}
     else
         echo "Service account already exists: ${EXISTING_ACCOUNT}"

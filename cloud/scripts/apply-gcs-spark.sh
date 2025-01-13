@@ -29,7 +29,7 @@ kubectl create secret generic spark-gcs-secret \
     --dry-run=client -o yaml | kubectl apply -f -
 
 # Install Spark
-helm upgrade spark bitnami/spark \
+helm upgrade --install spark bitnami/spark \
     -f ${VALUES_FILE} \
     --wait
 
@@ -41,10 +41,11 @@ wget https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.
     -O cloud/k8s/jars/gcs-connector.jar
 
 # Copy the GCS connector JAR to the Spark worker
+kubectl cp cloud/k8s/jars/gcs-connector.jar spark-master-0:/tmp/gcs-connector.jar
 kubectl cp cloud/k8s/jars/gcs-connector.jar spark-worker-0:/tmp/gcs-connector.jar
+kubectl cp cloud/k8s/jars/gcs-connector.jar spark-worker-1:/tmp/gcs-connector.jar
 
 # Clean up
-rm -f ${KEY_FILE}
 rm cloud/k8s/jars/gcs-connector.jar
 rm -rf cloud/k8s/jars
 

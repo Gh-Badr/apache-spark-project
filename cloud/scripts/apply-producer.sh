@@ -38,9 +38,7 @@ kubectl create configmap $CONFIG_MAP_NAME --from-file=producer.py=$PRODUCER_FILE
 echo "Applying deployment..."
 export START_FILE="0"
 export NUM_FILES="20"
-export SPEED_FACTOR=432000 # 5 days = 1 sec
-# export SPEED_FACTOR="86400" # 1 day = 1 sec
-# export SPEED_FACTOR=3600 # 1 hour = 1 sec
+export SPEED_FACTOR="432000" # 5 days = 1 sec
 
 # Render the deployment template with the project ID
 envsubst '$PROJECT_ID,$START_FILE,$NUM_FILES,$SPEED_FACTOR' < ${DEPLOYMENT_TEMPLATE_PATH} > ${DEPLOYMENT_FILE_PATH}

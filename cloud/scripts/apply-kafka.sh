@@ -34,5 +34,10 @@ sleep 10
 
 # Get the external IP of the svc (LoadBalancer)
 kaftrop_ip=$(kubectl get svc kafdrop -n kafka -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+while [ -z "$kaftrop_ip" ]; do
+  echo "Waiting for Kafdrop IP..."
+  sleep 5
+  kaftrop_ip=$(kubectl get svc kafdrop -n kafka -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+done
 
 echo "Kafdrop is available at http://${kaftrop_ip}:9000"
