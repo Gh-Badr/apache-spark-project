@@ -21,6 +21,8 @@ A distributed analysis of Google's cluster data using Apache Spark.
 
 - [`analysis_results/`](analysis_results/): Contains the results of the analysis jobs that we conducted in the cloud environment.
 
+- [`comparison/`](comparison/): Contains a performance comparison showing the difference in execution time when adding more workers to the Spark cluster. The comparison is done on one job that we ran in the cloud environment which is the [`rdd_q5.py`](src/overall_analysis/rdd_q5.py) job.
+
 ## Running the project
 
 ### Prerequisites
@@ -130,7 +132,7 @@ A distributed analysis of Google's cluster data using Apache Spark.
 
 ### Running the stream processing
 
-    In this part, we will simulate the stream processing by sending the data related to the `task_events` and `job_events` tables to Kafka topics (one topic for each table). Then, we will read the data from these topics and perform some analysis on it in real-time.
+In this part, we will simulate the stream processing by sending the data related to the `task_events` and `job_events` tables to Kafka topics (one topic for each table). Then, we will read the data from these topics and perform some analysis on it in real-time.
 
 1. Install Kafka
 
@@ -176,7 +178,7 @@ A distributed analysis of Google's cluster data using Apache Spark.
 
     This script will submit the Spark streaming job to the Spark cluster. The job reads the data from the Kafka topics and performs some analysis on it in real-time. In our case, we are counting the number of jobs and tasks per scheduling class and per event type.
 
-    The jobs results are then written in the `/metrics` endpoint of the `port 8081` of the Spark master pod. They are then scraped by Prometheus and visualized in Grafana.
+    The jobs results are then written in the `/metrics` endpoint of the `port 8181` of the Spark master pod. They are then scraped by Prometheus and visualized in Grafana.
 
 4. Visualize the results
 
